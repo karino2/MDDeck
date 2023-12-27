@@ -364,20 +364,26 @@ private fun lang2Enum(lang: String) : CodeLang {
 
 @Composable
 fun CodeFence(lang: String, code: String) {
-    val codeParser = remember { PrettifyParser() } // try getting from LocalPrettifyParser.current
-    val themeState by remember { mutableStateOf(CodeThemeType.Monokai) }
-    val theme = remember(themeState) { themeState.theme }
+    val codeParser = PrettifyParser() // try getting from LocalPrettifyParser.current
+    val theme = CodeThemeType.Monokai.theme
 
-    val parsedCode = remember {
-        parseCodeAsAnnotatedString(
+    val langEnum = lang2Enum(lang)
+    val content = code.trimEnd('\n')
+
+    val mod = Modifier.background(Color(46, 46, 46)).padding(5.dp)
+
+    if(langEnum == CodeLang.Default) {
+        Text(content, mod, color = Color.White)
+    } else {
+        val parsedCode = parseCodeAsAnnotatedString(
             parser = codeParser,
             theme = theme,
-            lang = lang2Enum(lang),
-            code = code.trimEnd('\n')
+            lang = langEnum,
+            code = content
         )
+        Text(parsedCode, mod)
     }
 
-    Text(parsedCode, Modifier.background(Color(46, 46, 46)).padding(5.dp))
 }
 
 @Composable
