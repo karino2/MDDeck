@@ -111,15 +111,10 @@ fun MDDecks(
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 viewModel.blocks.value.forEachIndexed { index, block ->
                     key(block.dt) {
-                        val node = viewModel.parse(block.src)
                         Markdown(block,
                             { viewModel.parse(it) },
                             onSelect = { newSelect ->
-                                /*
-                                viewModel.updateSelectionState(index, newSelect)
-                                textState = viewModel.selectedBlock.value.src
-
-                                 */
+                                viewModel.notifyCellClicked(block)
                             }
                         )
                         Spacer(modifier = Modifier.size(5.dp))

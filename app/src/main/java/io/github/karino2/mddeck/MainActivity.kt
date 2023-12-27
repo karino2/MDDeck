@@ -25,6 +25,7 @@ import java.util.Date
 class MainActivity : ComponentActivity() {
     companion object {
         const val  LAST_URI_KEY = "last_uri_path"
+        const val EXTRA_DATE_KEY = "current_date"
         fun lastUriStr(ctx: Context) = sharedPreferences(ctx).getString(LAST_URI_KEY, null)
         fun writeLastUriStr(ctx: Context, path : String) = sharedPreferences(ctx).edit()
             .putString(LAST_URI_KEY, path)
@@ -63,27 +64,45 @@ class MainActivity : ComponentActivity() {
     private val getEditResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result->
         if (result.resultCode == Activity.RESULT_OK) {
             val content = result.data?.getStringExtra("NEW_CONTENT") ?: ""
-            val cell = MdCell(Date(), content)
-            rootDir.saveMd(cell)
-            viewModel.blocks.value.appendTail(cell)
+            val now = Date()
+            val dt = result.data?.let{ Date(it.getLongExtra(EXTRA_DATE_KEY, 0)) } ?: now
+            val cell = MdCell(dt, content)
+            if (dt == now)
+            {
+                rootDir.saveMd(cell)
+                viewModel.appendCell(cell)
+            }
+            else
+            {
+                rootDir.updateMd(cell)
+                viewModel.updateCell(cell)
+            }
         }
     }
 
-    fun reloadHitokotos() {
+    fun reloadMdCells() {
         lifecycleScope.launch(Dispatchers.IO) {
-            val hitokotos = rootDir.listHitokotoFiles().take(30).map { MdCell.fromFile(it) }.toList()
+            val mdCells = rootDir.listMdFiles().take(30).map { MdCell.fromFile(it) }.toList()
             withContext(Dispatchers.Main) {
-                viewModel.blocks.value = hitokotos
+                viewModel.blocks.value = mdCells
             }
         }
     }
     private fun openRootDir(url: Uri) {
         _url = url
-        reloadHitokotos()
+        reloadMdCells()
     }
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
+        viewModel.notifyCellClicked = {cell ->
+            Intent(this, EditActivity::class.java).also { editIntent->
+                editIntent.putExtra(Intent.EXTRA_TEXT, cell.src)
+                editIntent.putExtra(EXTRA_DATE_KEY, cell.dt.time)
+                getEditResult.launch(editIntent)
+            }
+
+        }
         setContent {
             MDDeckTheme {
                 // A surface container using the 'background' color from the theme
@@ -92,42 +111,6 @@ class MainActivity : ComponentActivity() {
                     color = MaterialTheme.colorScheme.background
                 ) {
                     MDDecks(viewModel)
-                    /*
-                    Column {
-                        TopAppBar(title = {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.End
-                            ) {
-                                IconButton(onClick = {
-                                    showMessage(this@MainActivity, "Reload")
-                                    reloadHitokotos()
-                                }) {
-                                    Icon(painter = painterResource(id = R.drawable.outline_refresh_24), contentDescription = "Reload")
-                                }
-                            }
-                        },
-                        )
-
-                        Column(modifier= Modifier
-                            .padding(13.dp, 5.dp)
-                            .verticalScroll(rememberScrollState())
-                            .weight(weight =1f, fill = false)) {
-                            cells.value.forEach { CellView(it) }
-                        }
-
-                        Row(modifier = Modifier.padding(5.dp, 5.dp).fillMaxWidth(), horizontalArrangement = Arrangement.End){
-                            Button(onClick = {
-                                Intent(this@MainActivity, EditActivity::class.java).also {
-                                    getEditResult.launch(it)
-                                }
-                            }) {
-                                Text("+", fontSize=23.sp)
-                            }
-                        }
-                    }
-                     */
                 }
             }
         }
@@ -136,14 +119,6 @@ class MainActivity : ComponentActivity() {
             lastUri?.let {
                 openRootDir(it)
 
-                if (intent?.action == Intent.ACTION_SEND && intent.type?.startsWith("text/") == true) {
-                    Intent(this@MainActivity, EditActivity::class.java).also { editIntent->
-                        editIntent.putExtra(Intent.EXTRA_TEXT, receivedText(intent))
-                        getEditResult.launch(editIntent)
-                    }
-
-
-                }
                 return
             }
         } catch(_: Exception) {
@@ -152,10 +127,4 @@ class MainActivity : ComponentActivity() {
         getRootDirUrl.launch(null)
     }
 
-    private fun receivedText(intent: Intent) : String {
-        val body = intent.getStringExtra(Intent.EXTRA_TEXT) ?: ""
-        return intent.getStringExtra(Intent.EXTRA_SUBJECT)?.let { subject->
-            "${subject} ${body}"
-        } ?: body
-    }
 }

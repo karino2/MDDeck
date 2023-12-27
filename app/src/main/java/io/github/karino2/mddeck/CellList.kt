@@ -185,27 +185,48 @@ class RootDir(val dir: FastFile) {
     private val yearPat = "^[0-9][0-9][0-9][0-9]$".toRegex()
 
     fun listYears() = dir.listFiles(yearPat).map { YearDir(it) }
-    fun saveMd(year: String, month: String, day: String, md: MdCell) : FastFile {
+
+    data class CellPath(val yearDir: FastFile, val monthDir: FastFile, val dayDir: FastFile, val dispName: String) {
+        fun createFile() : FastFile {
+            return dayDir.createFile("text/markdown", dispName ) ?: throw Exception("Can't create file: ${dispName}")
+        }
+
+        fun findFile() : FastFile {
+            return dayDir.findFile(dispName) ?: throw Exception("${dispName} does not exists")
+        }
+    }
+
+    fun dateToCellPath(dt: Date) : CellPath {
+        val year = (1900+dt.year).toString()
+        val month = "%02d".format(dt.month+1)
+        val day = "%02d".format(dt.date)
+
         val yearDir = dir.ensureDirectory(year) ?: throw Exception("Can't create year directory: $year")
         val monthDir = yearDir.ensureDirectory(month) ?: throw Exception("Can't create month directory: $month")
         val dayDir = monthDir.ensureDirectory(day) ?: throw Exception("Can't create day directory: $day")
-        val dispname = "${md.dt.time}.md"
+        val dispname = "${dt.time}.md"
 
-        val file = dayDir.createFile("text/plain", dispname ) ?: throw Exception("Can't create file: $dispname")
-        file.writeText(md.src)
-        return file
+        return CellPath(yearDir, monthDir, dayDir, dispname)
     }
 
 
     fun saveMd(md: MdCell) : FastFile {
-        val dt = md.dt
-        val yearStr = (1900+dt.year).toString()
-        val monthStr = "%02d".format(dt.month+1)
-        val dayStr = "%02d".format(dt.date)
-        return saveMd(yearStr, monthStr, dayStr, md)
+        val cellPath = dateToCellPath(md.dt)
+
+        val file = cellPath.createFile()
+        file.writeText(md.src)
+        return file
     }
 
-    fun listHitokotoFiles() = sequence {
+    fun updateMd(md: MdCell) : FastFile {
+        val cellPath = dateToCellPath(md.dt)
+
+        val file = cellPath.findFile()
+        file.writeText(md.src)
+        return file
+    }
+
+    fun listMdFiles() = sequence {
         listYears().forEach { yearDir ->
             yearDir.listMonths().forEach { monthDir->
                 monthDir.listDays().forEach { dayDir->
@@ -219,13 +240,13 @@ class RootDir(val dir: FastFile) {
 
 }
 
-
-fun List<MdCell>.appendTail(newMdCell:MdCell) : List<MdCell> {
-    val newMdCells = ArrayList<MdCell>()
+fun List<MdCell>.appendHead(newMdCell:MdCell) : List<MdCell> {
+    val newMdCells = mutableListOf(newMdCell)
     newMdCells.addAll(this)
-    newMdCells.add(newMdCells.size, newMdCell)
     return newMdCells
 }
+
+fun List<MdCell>.update(newCell: MdCell) = this.replace(newCell.dt, newCell.src)
 
 fun List<MdCell>.replace(dt: Date, newText: String): List<MdCell> {
     return this.map { if(it.dt == dt) { MdCell(dt, newText) } else { it } }

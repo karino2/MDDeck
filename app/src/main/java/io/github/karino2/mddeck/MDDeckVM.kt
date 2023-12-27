@@ -9,39 +9,15 @@ class MDDeckVM : ViewModel() {
 
     val blocks = mutableStateOf(emptyList<MdCell>())
 
-    /*
-    private fun onBlocksChange(newBlocks: List<Block>, notifySave : Boolean = true) {
-    blocks.value = newBlocks
-    selectedBlock.value = emptyBlock
-    if(notifySave) {
-        _notifySaveState.value = _notifySaveState.value?.let { it +1 } ?: 0
-    }
-    }
-     */
-
-
-    /*
-    fun updateBlock(dt: Date, blockSrc: String) {
-        val newBlocks = blocks.value.replace(dt, blockSrc)
-        onBlocksChange(newBlocks)
+    fun appendCell(md: MdCell) {
+        blocks.value = blocks.value.appendHead(md)
     }
 
-    fun appendTailBlocks(blockSrc: String) {
-        if(blockSrc != "") {
-            val newBlocks = blocks.value.appendTail(_splitter, blockSrc)
-            onBlocksChange(newBlocks)
-        }
+    fun updateCell(md: MdCell) {
+        blocks.value = blocks.value.update(md)
     }
 
-    fun updateSelectionState(idx: Int, isOpen: Boolean) {
-        selectedBlock.value = if(isOpen) blocks.value[idx] else emptyBlock
-    }
-
-    fun openMd(newMd: String) {
-        onBlocksChange(BlockList.toBlocks(parser.splitBlocks(newMd)), false)
-    }
-
-    fun parseBlock(src: String) = parser.parseBlock(src)
-     */
     fun parse(src: String) = parser.parse(src)
+
+    var notifyCellClicked : (MdCell)->Unit = {}
 }
