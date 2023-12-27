@@ -19,6 +19,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Checkbox
@@ -32,6 +34,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
+import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -128,6 +131,10 @@ fun MDDecks(
             }
 
             TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                ),
                 modifier = Modifier
                     .height(toolbarHeight)
                     .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.value.roundToInt()) },
@@ -139,7 +146,7 @@ fun MDDecks(
                         horizontalArrangement = Arrangement.End
                     ) {
                         IconButton(onClick = { viewModel.notifyNewCell() }) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Save")
+                            Icon(imageVector = Icons.Default.AddCircle, contentDescription = "Save")
                         }
                     }
 
@@ -380,7 +387,9 @@ fun CodeFence(lang: String, code: String) {
     val langEnum = lang2Enum(lang)
     val content = code.trimEnd('\n')
 
-    val mod = Modifier.background(Color(46, 46, 46)).padding(5.dp)
+    val mod = Modifier
+        .background(Color(46, 46, 46))
+        .padding(5.dp)
 
     if(langEnum == CodeLang.Default) {
         Text(content, mod, color = Color.White)
@@ -416,7 +425,7 @@ fun MdUnorderedList(list: BulletList) {
                     modifier = Modifier
                         .size(10.dp)
                         .padding(end = 5.dp)
-                        .offset(x=0.dp,y=10.dp)
+                        .offset(x = 0.dp, y = 10.dp)
                 ) {
                     drawCircle(radius = size.width / 2, center = center, color = Color.Black)
                 }
