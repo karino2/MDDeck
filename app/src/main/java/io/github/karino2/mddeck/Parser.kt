@@ -1,29 +1,20 @@
 package io.github.karino2.mddeck
 
-import org.intellij.markdown.ast.ASTNode
-import org.intellij.markdown.ast.getTextInNode
-import org.intellij.markdown.flavours.gfm.GFMFlavourDescriptor
-import org.intellij.markdown.parser.MarkdownParser
+import org.commonmark.ext.gfm.strikethrough.StrikethroughExtension
+import org.commonmark.ext.gfm.tables.TablesExtension
+import org.commonmark.ext.task.list.items.TaskListItemsExtension
+import org.commonmark.node.Node
+import org.commonmark.parser.Parser
 
 class Parser {
-    val flavour = GFMFlavourDescriptor()
-    val parser = MarkdownParser(flavour)
-
-    fun splitBlocks(md: String) : List<String> {
-        val tree = parser.buildMarkdownTreeFromString(md)
-
-        return tree.children.map {
-            it.getTextInNode(md).toString()
-        }
+    private val parser by lazy {
+        Parser.builder()
+            .extensions(listOf(TablesExtension.create(), TaskListItemsExtension.create(), StrikethroughExtension.create()))
+            .build()
     }
 
-    fun parseBlock(block: String) : ASTNode {
-        val root = parser.buildMarkdownTreeFromString(block)
-        return root.children[0]
-    }
-
-    fun parse(block: String) : ASTNode {
-        return parser.buildMarkdownTreeFromString(block)
+    fun parse(md: String) : Node {
+        return parser.parse(md)
     }
 
 }

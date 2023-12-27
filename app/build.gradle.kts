@@ -51,6 +51,11 @@ android {
 
 dependencies {
 
+    implementation("org.commonmark:commonmark:0.21.0")
+    implementation("org.commonmark:commonmark-ext-task-list-items:0.21.0")
+    implementation("org.commonmark:commonmark-ext-gfm-tables:0.21.0")
+    implementation("org.commonmark:commonmark-ext-gfm-strikethrough:0.21.0")
+
     implementation("androidx.core:core-ktx:1.12.0")
     implementation("androidx.lifecycle:lifecycle-runtime-ktx:2.6.2")
     implementation("androidx.activity:activity-compose:1.8.2")
@@ -59,7 +64,6 @@ dependencies {
     implementation("androidx.compose.ui:ui-graphics")
     implementation("androidx.compose.ui:ui-tooling-preview")
     implementation("androidx.compose.material3:material3")
-    implementation("org.jetbrains:markdown:0.5.0")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
     implementation("com.github.Qawaz.compose-code-editor:codeeditor-android:v3.1.1")
     testImplementation("junit:junit:4.13.2")
