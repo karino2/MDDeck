@@ -61,6 +61,7 @@ dependencies {
     implementation("androidx.compose.material3:material3")
     implementation("org.jetbrains:markdown:0.5.0")
     implementation(platform("androidx.compose:compose-bom:2023.08.00"))
+    implementation("com.github.Qawaz.compose-code-editor:codeeditor-android:v3.1.1")
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")

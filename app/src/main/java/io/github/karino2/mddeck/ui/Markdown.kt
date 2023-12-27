@@ -25,9 +25,11 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
@@ -40,13 +42,16 @@ import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.buildAnnotatedString
-import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import com.wakaztahir.codeeditor.model.CodeLang
+import com.wakaztahir.codeeditor.prettify.PrettifyParser
+import com.wakaztahir.codeeditor.theme.CodeThemeType
+import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
 import io.github.karino2.mddeck.MdCell
 import io.github.karino2.mddeck.MDDeckVM
 import org.intellij.markdown.MarkdownElementTypes
@@ -141,7 +146,7 @@ fun Markdown(
 
     // draw bounding box and call onSelect
     val boxModifier = Modifier.clickable { onSelect(true) }
-    Box(modifier = boxModifier.fillMaxWidth().background(Color(0xFFFFFBFE))) {
+    Box(modifier = boxModifier.fillMaxWidth().background(Color(0xFFFFFBFE)).padding(5.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             node.children.forEach{
                 MdBlock(ctx, it, true)
@@ -347,56 +352,83 @@ fun MdBlock(ctx: RenderContext, block: ASTNode, isTopLevel: Boolean) {
     // println(block.type.name)
 }
 
-// similar to CodeFenceGeneratingProvider at GeneratingProviders.kt
-@Composable
-fun CodeFence(md: String, node: ASTNode) {
-    Column(
-        modifier = Modifier
-            .background(Color.LightGray)
-            .padding(8.dp)
-    ) {
-        val codeStyle = TextStyle(fontFamily = FontFamily.Monospace)
-        val builder = StringBuilder()
-
-        var childrenToConsider = node.children
-        if (childrenToConsider.last().type == MarkdownTokenTypes.CODE_FENCE_END) {
-            childrenToConsider = childrenToConsider.subList(0, childrenToConsider.size - 1)
-        }
-
-        var lastChildWasContent = false
-
-        var renderStart = false
-        for (child in childrenToConsider) {
-            if (!renderStart && child.type == MarkdownTokenTypes.EOL) {
-                renderStart = true
-            } else {
-                when (child.type) {
-                    MarkdownTokenTypes.CODE_FENCE_CONTENT -> {
-                        builder.append(child.getTextInNode(md))
-                        lastChildWasContent = true
-                    }
-                    MarkdownTokenTypes.EOL -> {
-                        Text(
-                            style = codeStyle,
-                            text = builder.toString()
-                        )
-                        builder.clear()
-                        lastChildWasContent = false
-                    }
-                }
-
-            }
-        }
-        if (lastChildWasContent) {
-            Text(
-                style = codeStyle,
-                text = builder.toString()
-            )
-        }
-
+private fun Lang2Enum(lang: String) : CodeLang {
+    return when(lang) {
+        "powershell" -> CodeLang.Default
+        "kotlin" -> CodeLang.Kotlin
+        "java" -> CodeLang.Java
+        "cpp" -> CodeLang.CPP
+        "html" -> CodeLang.HTML
+        "c" -> CodeLang.C
+        "csharp" -> CodeLang.CSharp
+        "python" -> CodeLang.Python
+        "javascript" -> CodeLang.JavaScript
+        "bash" -> CodeLang.Bash
+        "sh" -> CodeLang.Bash
+        "fsharp" -> CodeLang.FSharp
+        else -> CodeLang.Default
     }
 }
 
+// similar to CodeFenceGeneratingProvider at GeneratingProviders.kt
+private fun codeBlock2String(md: String, node:ASTNode) : Pair<CodeLang, String> {
+    val builder = StringBuilder()
+
+    var childrenToConsider = node.children
+    if (childrenToConsider.last().type == MarkdownTokenTypes.CODE_FENCE_END) {
+        childrenToConsider = childrenToConsider.subList(0, childrenToConsider.size - 1)
+    }
+
+
+    var clang = CodeLang.Default
+    var renderStart = false
+    for (child in childrenToConsider) {
+        if (!renderStart && child.type == MarkdownTokenTypes.EOL) {
+            renderStart = true
+        } else {
+            when (child.type) {
+                MarkdownTokenTypes.CODE_FENCE_CONTENT -> {
+                    builder.append(child.getTextInNode(md))
+                }
+                MarkdownTokenTypes.FENCE_LANG -> {
+                    val lang = child.getTextInNode(md)
+                    clang = Lang2Enum(lang.toString())
+                }
+                MarkdownTokenTypes.EOL -> {
+                    builder.append('\n')
+                }
+            }
+
+        }
+    }
+
+    if (builder.last() == '\n') {
+        builder.deleteAt(builder.length-1)
+    }
+
+    return Pair(clang, builder.toString())
+}
+
+@Composable
+fun CodeFence(md: String, node: ASTNode) {
+    val (lang, content) = codeBlock2String(md, node)
+
+    val codeParser = remember { PrettifyParser() } // try getting from LocalPrettifyParser.current
+    var themeState by remember { mutableStateOf(CodeThemeType.Monokai) }
+    val theme = remember(themeState) { themeState.theme }
+
+    val parsedCode = remember {
+        parseCodeAsAnnotatedString(
+            parser = codeParser,
+            theme = theme,
+            lang = lang,
+            code = content
+        )
+    }
+
+    Text(parsedCode, Modifier.background(Color(46, 46, 46)))
+
+}
 
 @Composable
 inline fun MdListColumn(
