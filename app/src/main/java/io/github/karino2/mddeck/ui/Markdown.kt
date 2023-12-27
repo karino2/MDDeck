@@ -9,22 +9,28 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.absoluteOffset
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocal
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
@@ -38,6 +44,7 @@ import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.Role.Companion.Checkbox
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -48,6 +55,7 @@ import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import com.wakaztahir.codeeditor.model.CodeLang
 import com.wakaztahir.codeeditor.prettify.PrettifyParser
 import com.wakaztahir.codeeditor.theme.CodeThemeType
@@ -63,6 +71,7 @@ import org.intellij.markdown.ast.findChildOfType
 import org.intellij.markdown.ast.getTextInNode
 import org.intellij.markdown.ast.impl.ListCompositeNode
 import org.intellij.markdown.flavours.gfm.GFMElementTypes
+import org.intellij.markdown.flavours.gfm.GFMTokenTypes
 import kotlin.math.roundToInt
 
 
@@ -103,7 +112,7 @@ fun MDDecks(
         Box(modifier = Modifier.weight(1f)) {
             Column(modifier = Modifier
                 .verticalScroll(scrollState)
-                .padding(top = toolbarHeight+10.dp),
+                .padding(top = toolbarHeight + 10.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 viewModel.blocks.value.forEachIndexed { index, block ->
                     key(block.dt) {
@@ -146,7 +155,10 @@ fun Markdown(
 
     // draw bounding box and call onSelect
     val boxModifier = Modifier.clickable { onSelect(true) }
-    Box(modifier = boxModifier.fillMaxWidth().background(Color(0xFFFFFBFE)).padding(5.dp)) {
+    Box(modifier = boxModifier
+        .fillMaxWidth()
+        .background(Color(0xFFFFFBFE))
+        .padding(5.dp)) {
         Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
             node.children.forEach{
                 MdBlock(ctx, it, true)
@@ -156,9 +168,44 @@ fun Markdown(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun MdBlocks(ctx: RenderContext, blocks: CompositeASTNode, isTopLevel: Boolean = false) {
-    blocks.children.forEach { MdBlock(ctx, it, isTopLevel) }
+    /*
+            GFMTokenTypes.CHECK_BOX -> {
+            val txt = block.getTextInNode(ctx.src)
+            // "[ ] " or "[x] "
+            Checkbox(checked = txt.startsWith("[x]"), {})
+        }
+     */
+
+    var prevCheck : ASTNode? = null
+    blocks.children.forEach {
+        // check box should be inline element, but it's the only exception. So I put here for that special handlijng.
+        if (it.type == GFMTokenTypes.CHECK_BOX)
+        {
+            prevCheck = it
+        }
+        else
+        {
+            val pc = prevCheck // for smart cast
+            if (pc != null) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    val txt = pc.getTextInNode(ctx.src)
+                    // This code does not offer touch handling, so no need to add extra margin.
+                    // [android - Remove Default padding around checkboxes in Jetpack Compose new update - Stack Overflow](https://stackoverflow.com/questions/71609051/remove-default-padding-around-checkboxes-in-jetpack-compose-new-update)
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentEnforcement provides false) {
+                        // "[ ] " or "[x] "
+                        Checkbox(checked = txt.startsWith("[x]"), {}) // , modifier = Modifier.absoluteOffset(0.dp, (-10).dp))
+                    }
+                    MdBlock(ctx, it, isTopLevel)
+                }
+                prevCheck = null
+            } else {
+                MdBlock(ctx, it, isTopLevel)
+            }
+        }
+    }
 }
 
 
@@ -437,8 +484,13 @@ inline fun MdListColumn(
 ) {
     Column(
         Modifier
+            .offset(x = 10.dp)
+            .padding(0.dp)
+            /*
             .offset(x = if (isTopLevel) 5.dp else 10.dp)
             .padding(bottom = if (isTopLevel) 5.dp else 0.dp)
+
+             */
     ) { content() }
 }
 
@@ -447,11 +499,10 @@ fun MdUnorderedList(ctx: RenderContext, list: ListCompositeNode, isTopLevel: Boo
     MdListColumn(isTopLevel) {
         list.children.forEach { item ->
             if (item.type == MarkdownElementTypes.LIST_ITEM) {
-                Row {
+                Row(verticalAlignment = Alignment.CenterVertically) {
                     Canvas(
                         modifier = Modifier
                             .size(10.dp)
-                            .offset(y = 7.dp)
                             .padding(end = 5.dp)
                     ) {
                         drawCircle(radius = size.width / 2, center = center, color = Color.Black)
@@ -490,8 +541,12 @@ fun MdOrderedList(ctx: RenderContext, list: ListCompositeNode, isTopLevel: Boole
         heads.zip(items)
             .forEach { (head, item) ->
                 val mark = "${head}."
-                Row {
-                    Box(Modifier.padding(end = 5.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    // I want to align
+                    // 1. ...
+                    // 2. ...
+                    // I add 20.dp. This might not be enough, but I don't known what is the correct value.
+                    Box(Modifier.padding(end = 5.dp).width(20.dp)) {
                         Text(mark)
                     }
                     Box {
