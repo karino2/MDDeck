@@ -64,16 +64,16 @@ class MainActivity : ComponentActivity() {
     private val getEditResult = registerForActivityResult(ActivityResultContracts.StartActivityForResult()) { result->
         if (result.resultCode == Activity.RESULT_OK) {
             val content = result.data?.getStringExtra("NEW_CONTENT") ?: ""
-            val now = Date()
-            val dt = result.data?.let{ Date(it.getLongExtra(EXTRA_DATE_KEY, 0)) } ?: now
-            val cell = MdCell(dt, content)
-            if (dt == now)
+            val time = result.data?.let{ it.getLongExtra(EXTRA_DATE_KEY, 0) } ?: 0L
+            if (time == 0L)
             {
+                val cell = MdCell(Date(), content)
                 rootDir.saveMd(cell)
                 viewModel.appendCell(cell)
             }
             else
             {
+                val cell = MdCell(Date(time), content)
                 rootDir.updateMd(cell)
                 viewModel.updateCell(cell)
             }
@@ -101,7 +101,12 @@ class MainActivity : ComponentActivity() {
                 editIntent.putExtra(EXTRA_DATE_KEY, cell.dt.time)
                 getEditResult.launch(editIntent)
             }
-
+        }
+        viewModel.notifyNewCell = {
+            Intent(this, EditActivity::class.java).also { editIntent->
+                editIntent.putExtra(Intent.EXTRA_TEXT, "")
+                getEditResult.launch(editIntent)
+            }
         }
         setContent {
             MDDeckTheme {

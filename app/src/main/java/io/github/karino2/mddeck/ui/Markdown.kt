@@ -18,10 +18,15 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Done
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
@@ -128,6 +133,16 @@ fun MDDecks(
                     .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.value.roundToInt()) },
                 title = {
                     Text("MDDeck")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(onClick = { viewModel.notifyNewCell() }) {
+                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Save")
+                        }
+                    }
+
                 }
             )
 
@@ -396,11 +411,12 @@ inline fun MdListColumn(
 fun MdUnorderedList(list: BulletList) {
     MdListColumn {
         list.children.forEach { item ->
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(verticalAlignment = Alignment.Top) {
                 Canvas(
                     modifier = Modifier
                         .size(10.dp)
                         .padding(end = 5.dp)
+                        .offset(x=0.dp,y=10.dp)
                 ) {
                     drawCircle(radius = size.width / 2, center = center, color = Color.Black)
                 }
@@ -432,7 +448,7 @@ fun MdOrderedList(list: OrderedList) {
         heads.zip(items)
             .forEach { (head, item) ->
                 val mark = "${head}."
-                Row(verticalAlignment = Alignment.CenterVertically) {
+                Row(verticalAlignment = Alignment.Top) {
                     // I want to align
                     // 1. ...
                     // 2. ...

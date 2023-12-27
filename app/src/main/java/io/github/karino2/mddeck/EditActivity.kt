@@ -38,26 +38,27 @@ import kotlinx.coroutines.delay
 import java.util.Date
 
 class EditActivity : ComponentActivity() {
-    private fun onSave(dt: Date, text: String) {
+    private fun onSave(text: String) {
         Intent().apply {
             putExtra("NEW_CONTENT", text)
-            putExtra(MainActivity.EXTRA_DATE_KEY, dt.time)
+            if (time != 0L)
+                putExtra(MainActivity.EXTRA_DATE_KEY, time)
         }.also { setResult(RESULT_OK, it) }
         finish()
     }
 
     private val requester = FocusRequester()
 
-    private var dt = Date()
+    private var time = 0L
 
     override fun onSaveInstanceState(outState: Bundle) {
-        outState.putLong("DT_LONG", dt.time)
+        outState.putLong("DT_LONG", time)
         super.onSaveInstanceState(outState)
     }
 
     override fun onRestoreInstanceState(savedInstanceState: Bundle) {
         super.onRestoreInstanceState(savedInstanceState)
-        dt = Date(savedInstanceState.getLong("DT_LONG"))
+        time = savedInstanceState.getLong("DT_LONG")
     }
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -65,7 +66,7 @@ class EditActivity : ComponentActivity() {
         super.onCreate(savedInstanceState)
         val defaultText = intent?.getStringExtra(Intent.EXTRA_TEXT) ?: ""
         intent?.let {
-            dt = Date(it.getLongExtra(MainActivity.EXTRA_DATE_KEY, dt.time))
+            time = it.getLongExtra(MainActivity.EXTRA_DATE_KEY, 0)
         }
 
         setContent {
@@ -83,7 +84,7 @@ class EditActivity : ComponentActivity() {
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.End
                             ) {
-                                IconButton(onClick = { onSave(dt, text) }) {
+                                IconButton(onClick = { onSave(text) }) {
                                     Icon(imageVector = Icons.Default.Done, contentDescription = "Save")
                                 }
                             }

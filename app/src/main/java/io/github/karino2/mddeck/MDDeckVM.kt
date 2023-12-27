@@ -20,4 +20,5 @@ class MDDeckVM : ViewModel() {
     fun parse(src: String) = parser.parse(src)
 
     var notifyCellClicked : (MdCell)->Unit = {}
+    var notifyNewCell : ()->Unit = {}
 }
