@@ -40,7 +40,33 @@ class MainActivity : ComponentActivity() {
         fun showMessage(ctx: Context, msg : String) = Toast.makeText(ctx, msg, Toast.LENGTH_SHORT).show()
     }
 
-    val viewModel: MDDeckVM by viewModels()
+    private fun showToast(msg: String) = Toast.makeText(this, msg, Toast.LENGTH_LONG).show()
+
+
+    private val viewModel : MDDeckVM by lazy {
+        MDDeckVM().also {
+            it.notifyCellClicked = {cell ->
+                Intent(this, EditActivity::class.java).also { editIntent->
+                    editIntent.putExtra(Intent.EXTRA_TEXT, cell.src)
+                    editIntent.putExtra(EXTRA_DATE_KEY, cell.dt.time)
+                    getEditResult.launch(editIntent)
+                }
+            }
+            it.notifyNewCell = {
+                Intent(this, EditActivity::class.java).also { editIntent->
+                    editIntent.putExtra(Intent.EXTRA_TEXT, "")
+                    getEditResult.launch(editIntent)
+                }
+            }
+            it.notifyRefresh = {
+                showToast("Refresh content")
+                reloadMdCells()
+            }
+            it.notifySettings = {
+                getRootDirUrl.launch(null)
+            }
+        }
+    }
 
     private var _url : Uri? = null
 
@@ -95,19 +121,7 @@ class MainActivity : ComponentActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        viewModel.notifyCellClicked = {cell ->
-            Intent(this, EditActivity::class.java).also { editIntent->
-                editIntent.putExtra(Intent.EXTRA_TEXT, cell.src)
-                editIntent.putExtra(EXTRA_DATE_KEY, cell.dt.time)
-                getEditResult.launch(editIntent)
-            }
-        }
-        viewModel.notifyNewCell = {
-            Intent(this, EditActivity::class.java).also { editIntent->
-                editIntent.putExtra(Intent.EXTRA_TEXT, "")
-                getEditResult.launch(editIntent)
-            }
-        }
+
         setContent {
             MDDeckTheme {
                 // A surface container using the 'background' color from the theme

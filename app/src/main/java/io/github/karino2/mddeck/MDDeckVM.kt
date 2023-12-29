@@ -1,10 +1,9 @@
 package io.github.karino2.mddeck
 
 import androidx.compose.runtime.mutableStateOf
-import androidx.lifecycle.ViewModel
 
 
-class MDDeckVM : ViewModel() {
+class MDDeckVM {
     private val parser = Parser()
 
     val blocks = mutableStateOf(emptyList<MdCell>())
@@ -21,4 +20,6 @@ class MDDeckVM : ViewModel() {
 
     var notifyCellClicked : (MdCell)->Unit = {}
     var notifyNewCell : ()->Unit = {}
+    var notifyRefresh : ()->Unit = {}
+    var notifySettings : ()->Unit = {}
 }

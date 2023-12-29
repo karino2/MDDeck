@@ -23,18 +23,24 @@ import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Done
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.Refresh
+import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.LocalMinimumInteractiveComponentEnforcement
 import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.material3.TopAppBarScrollBehavior
+import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.getValue
@@ -89,34 +95,46 @@ import kotlin.math.roundToInt
 fun MDDecks(
     viewModel: MDDeckVM
 ) {
-    // https://developer.android.com/reference/kotlin/androidx/compose/ui/input/nestedscroll/package-summary
-    // val toolbarHeight = 48.dp
-    val toolbarHeight = 56.dp
-    val toolbarHeightPx = with(LocalDensity.current) { toolbarHeight.roundToPx().toFloat() }
-    val toolbarOffsetHeightPx = remember { mutableStateOf(0f) }
-    val nestedScrollConnection = remember {
-        object : NestedScrollConnection {
-            override fun onPreScroll(available: Offset, source: NestedScrollSource): Offset {
-                val delta = available.y
-                val newOffset = toolbarOffsetHeightPx.value + delta
-                toolbarOffsetHeightPx.value = newOffset.coerceIn(-toolbarHeightPx, 0f)
-                return Offset.Zero
+    val scrollBehavior = TopAppBarDefaults.enterAlwaysScrollBehavior(rememberTopAppBarState())
+    Scaffold(
+        modifier = Modifier.nestedScroll(scrollBehavior.nestedScrollConnection),
+        topBar = {
+            TopAppBar(
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.primaryContainer,
+                    titleContentColor = MaterialTheme.colorScheme.primary
+                ),
+                scrollBehavior = scrollBehavior,
+                title = {
+                    Text("MDDeck")
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.End
+                    ) {
+                        IconButton(onClick = { viewModel.notifyRefresh() }) {
+                            Icon(imageVector = Icons.Default.Refresh, contentDescription = "Refresh")
+                        }
+                        IconButton(onClick = { viewModel.notifySettings() }) {
+                            Icon(imageVector = Icons.Default.Settings, contentDescription = "Settings")
+                        }
+                    }
+
+                }
+            )
+        },
+        floatingActionButton = {
+            FloatingActionButton(onClick = { viewModel.notifyNewCell() }) {
+                Icon(Icons.Filled.Add, "Floating action button for new cell.")
             }
         }
-    }
-
-    // val cscope = rememberCoroutineScope()
-    val scrollState = rememberScrollState()
-
-    Column(modifier = Modifier
-        .fillMaxSize()
-        .nestedScroll(nestedScrollConnection)
-        .background(Color(0xFF076D20))) {
-        Box(modifier = Modifier.weight(1f)) {
-            Column(modifier = Modifier
-                .verticalScroll(scrollState)
-                .padding(top = toolbarHeight + 10.dp),
-                verticalArrangement = Arrangement.spacedBy(10.dp)) {
+    ) { innerPadding->
+        Column(modifier = Modifier
+            .padding(innerPadding)
+            .fillMaxSize()
+            .verticalScroll(rememberScrollState())
+            .background(Color(0xFF076D20)),
+            verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 viewModel.blocks.value.forEachIndexed { index, block ->
                     key(block.dt) {
                         Markdown(block,
@@ -128,31 +146,6 @@ fun MDDecks(
                         Spacer(modifier = Modifier.size(5.dp))
                     }
                 }
-            }
-
-            TopAppBar(
-                colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                    titleContentColor = MaterialTheme.colorScheme.primary
-                ),
-                modifier = Modifier
-                    .height(toolbarHeight)
-                    .offset { IntOffset(x = 0, y = toolbarOffsetHeightPx.value.roundToInt()) },
-                title = {
-                    Text("MDDeck")
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        IconButton(onClick = { viewModel.notifyNewCell() }) {
-                            Icon(imageVector = Icons.Default.AddCircle, contentDescription = "Save")
-                        }
-                    }
-
-                }
-            )
-
         }
     }
 }
