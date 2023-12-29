@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -20,14 +19,13 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AddCircle
-import androidx.compose.material.icons.filled.Done
-import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Checkbox
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Divider
+import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
@@ -39,22 +37,14 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBar
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.TopAppBarScrollBehavior
 import androidx.compose.material3.rememberTopAppBarState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
-import androidx.compose.runtime.getValue
 import androidx.compose.runtime.key
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextStyle
@@ -63,14 +53,13 @@ import androidx.compose.ui.text.font.FontStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextDecoration
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.unit.dp
 import com.wakaztahir.codeeditor.model.CodeLang
 import com.wakaztahir.codeeditor.prettify.PrettifyParser
 import com.wakaztahir.codeeditor.theme.CodeThemeType
 import com.wakaztahir.codeeditor.utils.parseCodeAsAnnotatedString
-import io.github.karino2.mddeck.MdCell
 import io.github.karino2.mddeck.MDDeckVM
+import io.github.karino2.mddeck.MdCell
 import org.commonmark.ext.gfm.strikethrough.Strikethrough
 import org.commonmark.ext.task.list.items.TaskListItemMarker
 import org.commonmark.node.BulletList
@@ -79,15 +68,14 @@ import org.commonmark.node.Emphasis
 import org.commonmark.node.FencedCodeBlock
 import org.commonmark.node.HardLineBreak
 import org.commonmark.node.Link
-import org.commonmark.node.Heading as CHeading
-import org.commonmark.node.Text as CText
 import org.commonmark.node.Node
 import org.commonmark.node.OrderedList
 import org.commonmark.node.Paragraph
 import org.commonmark.node.StrongEmphasis
 import org.commonmark.node.ThematicBreak
-import kotlin.math.roundToInt
-
+import java.text.DateFormat
+import org.commonmark.node.Heading as CHeading
+import org.commonmark.node.Text as CText
 
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -134,16 +122,21 @@ fun MDDecks(
             .fillMaxSize()
             .verticalScroll(rememberScrollState())
             .background(Color(0xFF076D20)),
-            verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                viewModel.blocks.value.forEachIndexed { index, block ->
+            verticalArrangement = Arrangement.spacedBy(15.dp)) {
+                viewModel.blocks.value.forEach { block ->
                     key(block.dt) {
-                        Markdown(block,
-                            { viewModel.parse(it) },
-                            onSelect = { newSelect ->
-                                viewModel.notifyCellClicked(block)
+                        ElevatedCard(
+                            elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { viewModel.notifyCellClicked(block) }
+                            ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
+                                Markdown(block, { viewModel.parse(it) })
+                                Text(DateFormat.getDateTimeInstance().format(block.dt), color=Color(150, 150, 150), modifier= Modifier.align(Alignment.End).padding(5.dp), )
                             }
-                        )
-                        Spacer(modifier = Modifier.size(5.dp))
+
+                        }
                     }
                 }
         }
@@ -166,20 +159,12 @@ val Node.children : List<Node>
 fun Markdown(
     mdCell: MdCell,
     parseFun: (block: String) -> Node,
-    onSelect: (isSelect: Boolean) -> Unit
 ) {
     val node = parseFun(mdCell.src)
 
-    // draw bounding box and call onSelect
-    val boxModifier = Modifier.clickable { onSelect(true) }
-    Box(modifier = boxModifier
-        .fillMaxWidth()
-        .background(Color(0xFFFFFBFE))
-        .padding(5.dp)) {
-        Column(verticalArrangement = Arrangement.spacedBy(5.dp)) {
-            node.children.forEach {
-                MdBlock(it)
-            }
+    Column(verticalArrangement = Arrangement.spacedBy(5.dp), modifier = Modifier.padding(5.dp)) {
+        node.children.forEach {
+            MdBlock(it)
         }
     }
 }
